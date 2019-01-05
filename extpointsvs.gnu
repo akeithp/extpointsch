@@ -11,5 +11,6 @@ plot [] [] \
 	'./RESULTS/EPS' using 1:3 title "EPS" with linespoints lt 1 pt 2 lw 0.5, \
 	'./RESULTSP/EPSParallel1' using 1:3 title "EPSP 1 threads" with linespoints lt 2 pt 3 lw 0.5, \
 	'./RESULTSP/EPSParallel2' using 1:3 title "EPSP 2 threads" with linespoints lt 3 pt 4 lw 0.5, \
-	'./RESULTSP/EPSParallel4' using 1:3 title "EPSP 4 threads" with linespoints lt 4 pt 5 lw 0.5
+	'./RESULTSP/EPSParallel4' using 1:3 title "EPSP 4 threads" with linespoints lt 4 pt 5 lw 0.5, \
+	'./RESULTSP/EPSParallel8' using 1:3 title "EPSP 8 threads" with linespoints lt 5 pt 6 lw 0.5
 
