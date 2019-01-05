@@ -84,7 +84,7 @@ int main(int argc, char const *argv[]){
 	REPETTEST = atol(argv[7]);
 	//if (points->NORMAL)
 	//	points->sigma = atol(argv[5]);
-	if(argc < 6){
+	if(argc < 7){
 		cout << "Execution Error! call: ./prog <PARALLEL> <n> <NORMAL flag> [<mean>] [<sigma>] <threads> <REPETS FOR TEST" << endl;
 		exit(EXIT_FAILURE);
 	}
