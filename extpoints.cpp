@@ -640,11 +640,11 @@ void runEPSP(pointSet *points){
 			count++;
 		}
 	}
-	cout << count << endl;
+	//cout << count << endl;
 	long resto = points->n - count;
-	cout << resto << endl;
+	//cout << resto << endl;
 	percent = (float)resto/(float)points->n;
-	cout << percent << endl;
+	//cout << percent << endl;
 	strcpy(aFile, "./RESULTS/");
 	strcpy(str, "");
 	sprintf(str, "EPSFilteredPerc"); //%ld, points->n
