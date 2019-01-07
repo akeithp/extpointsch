@@ -61,6 +61,7 @@ void genArrays(pointSet *points);
 void divideArrays(pointSet *points);
 void runEPS(pointSet *points);
 void runEPSP(pointSet *points);
+void filteredPercent(pointSet *points);
 //void testPoints(pointSet *points); //comprobar correctitud de los puntos encontrados (secuencial vs paralelo)
 
 int main(int argc, char const *argv[]){
@@ -158,14 +159,6 @@ int main(int argc, char const *argv[]){
 		}
 	}
 	
-	// OJO: Debería comparar en algún momento los puntos obtenidos en secuencial y en paralelo
-	// para comprobar la correctitud del algoritmo
-	//cout << "Extreme Points E CH : " << endl;
-	//cout << "LEFT (WEST) = " << xleft << "," << yleft << endl;
-	//cout << "DOWN (SOUTH) = " << xdown << "," << ydown << endl;
-	//cout << "Puntos Extremos E CH : " << xright << "," << yright <<  endl;
-	//cout << "Puntos Extremos E CH : " << endl;
-	
 	/*
 	 * Parallel version
 	 */
@@ -199,6 +192,7 @@ int main(int argc, char const *argv[]){
 		}
 		
 	}
+	filteredPercent(points);
 	return 0;
 }
 
@@ -592,62 +586,89 @@ void runEPSP(pointSet *points){
 			yri_up = yup;
 		}
 	}
-	//ulong i; //, j;
-	//uint nnew = (int)points->n/NTHREADS;
-	//pointSet *pDQ = new pointSet[NTHREADS]; // DEBEMOS RECORRER EL ARREGLO NO CREAR NUEVOS!!!
-	
-	//PARALELIZAR // Qué podemos paralelizar ahora?
-	//#pragma omp parallel num_threads(NTHREADS)
-	//{
-//		#pragma omp for private(i)
-//		for(i=0; i<NTHREADS; i++){
-			// Necesitamos un subarreglo con los índices que queremos??
-			//pointSet *pTest = points[]nnew*(NTHREADS-1) (nnew*NTHREADS);
+}
 
-//		}
- /* Reemplazar
-		#pragma omp for private(i,j)
-		for(i=0;i<NTHREADS-1;i++){
-			//pDQ[i] = new pointSet[nnew];
-			pDQ[i].X = new point[nnew];
-			for(j=i*nnew; j<(i+1)*nnew; j++){
-				pDQ[i].X[j] = points->X[j];
-				pDQ[i].n = nnew;
-			}
-		}*/
-//		#pragma omp barrier
-//	}
-	// Barrera de sincronización
-	// Llenar el último arreglo con los elementos restantes
-	//pDQ[NTHREADS-1] = new pointSet[nnew];
-	//pDQ[NTHREADS-1].X = new point[nnew];
-//	for(i=nnew*(NTHREADS-1); i<points->n; i++){
-//		pDQ[NTHREADS-1].X[i-nnew*(NTHREADS-1)] = points->X[i];
-//		pDQ[NTHREADS-1].n = points->n - (nnew*NTHREADS-1);
-//	}
-	// ejecutamos la búsqueda, ahora en parallelo
-//	#pragma omp parallel
-//	{
-//		#pragma omp for private(i)
-//		for(i=0;i<NTHREADS;i++){
-//			/*pointSet *pTest;
-//			pTest = pDQ[i];
-//			runEPS(pTest);*/
-//		}
-//		#pragma omp barrier
-//	}
-	/*right = pDQ[0].right;
-	left = pDQ[0].left;
-	up = pDQ[0].up;
-	down = pDQ[0].down;
-	for(i=1;i<NTHREADS;i++){
-		if(pDQ[i].right.x > points->right.x)
-			points->right = pDQ[i].right;
-		if(pDQ[i].left.x < points->left.x)
-			points->left = pDQ[i].left;
-		if(pDQ[i].up.y > points->up.y)
-			points->up = pDQ[i].up;
-		if(pDQ[i].down.y < points->down.y)
-			points->down = pDQ[i].down;
-	}*/
+/** 
+ * Cálculo de Porcentaje de Puntos Filtrados
+ */
+ void filteredPercent(pointSet *points){
+	ulong i;
+	ulong count = 0;
+	float percent = 0;
+	char aFile[400];
+	char str[100];
+	float a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, b5, b6,b7, b8;
+	a1 = (yup-yup_le)/(xup-xup_le);
+	b1 = -(yup-yup_le)/(xup-xup_le) + yup_le;
+	a2 = (yleft-yup_le)/(xleft-xup_le);
+	b2 = -(yleft-yup_le)/(xleft-xup_le) + yup_le;
+	a3 = (yleft-yle_do)/(xleft-xle_do);
+	b3 = -(yleft-yle_do)/(xleft-xle_do) + yle_do;
+	a4 = (ydown-yle_do)/(xdown-xle_do);
+	b4 = -(ydown-yle_do)/(xdown-xle_do) + yle_do;
+	a5 = (ydown-ydo_ri)/(xdown-xdo_ri);
+	b5 = -(ydown-ydo_ri)/(xdown-xdo_ri) + ydo_ri;
+	a6 = (yright-ydo_ri)/(xright-xdo_ri);
+	b6 = -(yright-ydo_ri)/(xright-xdo_ri) + ydo_ri;
+	a7 = (yright-yri_up)/(xright-xri_up);
+	b7 = -(yright-yri_up)/(xright-xri_up) + yri_up;
+	a8 = (yup-yri_up)/(xup-xri_up);
+	b8 = -(yup-yri_up)/(xup-xri_up) + yri_up;
+	for(i=0; i<points->n; i++){
+		if(points->X[i] < ((points->Y[i]-b1)/a1) && points->Y[i] > (a1*points->X[i]+b1)){
+			count++;
+		}
+		else if(points->X[i] < ((points->Y[i]-b2)/a2) && points->Y[i] > (a2*points->X[i]+b2)){
+			count++;
+		}
+		else if(points->X[i] < ((points->Y[i]-b3)/a3) && points->Y[i] < (a3*points->X[i]+b3)){
+			count++;
+		}
+		else if(points->X[i] < ((points->Y[i]-b4)/a4) && points->Y[i] < (a4*points->X[i]+b4)){
+			count++;
+		}
+		else if(points->X[i] > ((points->Y[i]-b5)/a5) && points->Y[i] < (a5*points->X[i]+b5)){
+			count++;
+		}
+		else if(points->X[i] > ((points->Y[i]-b6)/a6) && points->Y[i] < (a6*points->X[i]+b6)){
+			count++;
+		}
+		else if(points->X[i] > ((points->Y[i]-b7)/a7) && points->Y[i] > (a7*points->X[i]+b7)){
+			count++;
+		}
+		else if(points->X[i] > ((points->Y[i]-b8)/a8) && points->Y[i] > (a8*points->X[i]+b8)){
+			count++;
+		}
+	}
+	cout << count << endl;
+	long resto = points->n - count;
+	cout << resto << endl;
+	percent = (float)resto/(float)points->n;
+	cout << percent << endl;
+	strcpy(aFile, "./RESULTS/");
+	strcpy(str, "");
+	sprintf(str, "EPSFilteredPerc"); //%ld, points->n
+	strcat(aFile, str);
+	cout << "Resume File: " << aFile << endl;
+	FILE *fp = fopen(aFile, "a+" );
+	if(NTHREADS > 0){
+		if (points->NORMAL){
+			// [n] [filtered percent] [esperanza] [varianza]
+			fprintf(fp, "%ld %f %d %d\n", points->n, percent, points->NORMAL, NTHREADS);
+		}else{
+			// [n] [filtered percent] [avg bs-time/exec]
+			fprintf(fp, "%ld %f %d %d\n", points->n, percent, points->NORMAL, NTHREADS);
+		}
+		fclose(fp);
+	}
+	else{
+		if (points->NORMAL){
+			// [n] [filtered percent] [esperanza] [varianza]
+			fprintf(fp, "%ld %f %d %d\n", points->n, percent, points->NORMAL, 0);
+		}else{
+			// [n] [filtered percent] [avg bs-time/exec]
+			fprintf(fp, "%ld %f %d %d\n", points->n, percent, points->NORMAL, 0);
+		}
+		fclose(fp);
+	}
 }
