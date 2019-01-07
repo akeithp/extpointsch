@@ -1,6 +1,6 @@
 set terminal postscript eps color solid "Helvetica" 16
 #set terminal postscript eps color colortext
-set output "./ESPP.eps"
+set output "./EPSPN.eps"
 set title "Array length vs. Search time Parallel, Normal Distribution"
 set xlabel "n"
 set ylabel "Time (microsecs)"
