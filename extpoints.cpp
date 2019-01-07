@@ -24,7 +24,7 @@ using namespace std;
 
 uint NTHREADS;	// number of threads
 ulong REPET = 100;
-ulong REPETTEST;
+ulong REPETTEST = 1;
 
 //ELIMINAR
 /*struct point{
@@ -38,9 +38,13 @@ float yup, ydown, yleft, yright, yri_up, yup_le, yle_do, ydo_ri;
 typedef struct{
 	float *X, *Y;	// array of float points X and Y
 	bool NORMAL;	// flag probability: 1 = NORMAL, 0 = UNIFORM
-	float sigma;		// for normal distribution probability function
-	float mean;
+	float sigma;	// for normal distribution probability function
+	float mean;		// for normal distribution probability function
 	ulong n;
+	float minx;		// for uniform distribution
+	float maxx;		// for uniform distribution 
+	float miny;		// for uniform distribution 
+	float maxy;		// for uniform distribution 
 	//point mean;
 	/*point up;
 	point down;
@@ -70,24 +74,37 @@ int main(int argc, char const *argv[]){
 	flagP = atoi(argv[1]);
 	points->n = atoi(argv[2]);
 	points->NORMAL = atoi(argv[3]);
-	points->mean = atof(argv[4]);
-	points->sigma = atof(argv[5]);
-	//REPET
-	//CARPETA DE RESULTADOS
+	if(points->NORMAL){
+		points->mean = atof(argv[4]);
+		points->sigma = atof(argv[5]);
+	}
+	else{
+		points->minx = atof(argv[4]);
+		points->maxx = atof(argv[5]);
+		points->miny = atof(argv[6]);
+		points->maxy = atof(argv[7]);
+	}
 	/*
 	 * Parallel Section
 	 * @argv[6] number of threads
 	 */
-	NTHREADS = atoi(argv[6]);
-	omp_set_num_threads(NTHREADS);
+	if(flagP){
+		if(points->NORMAL) 
+			NTHREADS = atoi(argv[6]);
+		else 
+			NTHREADS = atoi(argv[8]);
+		omp_set_num_threads(NTHREADS);
+	}
 	
-	REPETTEST = atol(argv[7]);
-	//if (points->NORMAL)
-	//	points->sigma = atol(argv[5]);
-	if(argc < 7){
+	//REPET
+	//CARPETA DE RESULTADOS
+	
+	//REPETTEST = atol(argv[7]);
+	// OJO: Corregir comprobación de parámetros de entrada y mensaje de error
+	/*if(flagP && points->NORMAL && argc < 7){
 		cout << "Execution Error! call: ./prog <PARALLEL> <n> <NORMAL flag> [<mean>] [<sigma>] <threads> <REPETS FOR TEST" << endl;
 		exit(EXIT_FAILURE);
-	}
+	}*/
 	if(PRINT){
 		cout << "Parameters..." << endl;
 		cout << "n = " << points->n << endl;
@@ -126,7 +143,7 @@ int main(int argc, char const *argv[]){
 			}
 			strcpy(aFile, "./RESULTS/");
 			strcpy(str, "");
-			sprintf(str, "EPS"); //%ld, points->n
+			sprintf(str, "EPS%i", points->NORMAL); //%ld, points->n
 			strcat(aFile, str);
 			cout << "Resume File: " << aFile << endl;
 			FILE *fp = fopen(aFile, "a+" );
@@ -167,7 +184,7 @@ int main(int argc, char const *argv[]){
 			}
 			strcpy(aFile, "./RESULTSP/");
 			strcpy(str, "");
-			sprintf(str, "EPSParallel%d", NTHREADS); //%ld, points->n
+			sprintf(str, "EPSParallel%i%d", points->NORMAL, NTHREADS); //%ld, points->n
 			strcat(aFile, str);
 			cout << "Resume File: " << aFile << endl;
 			FILE *fp = fopen(aFile, "a+" );
@@ -200,18 +217,19 @@ void genArrays(pointSet *points){
 			numX = distribution(generator);
 	    	numY = distribution(generator);
 	    	points->X[i] = numX;
-	    	//cout << numX << endl;
 	    	points->Y[i] = numY;
-	    	//cout << numY << endl;
 		}
-	}else{ // DISTRIBUCION UNIFORME - PROBAR
-		//points->X = new point[points->n];
-		//points->X[0]->x = rand()%BLK; //parametro de entrada, definir
-		//points->X[0]->y = rand()%BLK;
-		//for (i=1; i<points->n; i++){
-		//	points->X[i]->x = points->X[i-1]->x + rand()%BLK;
-		//	points->X[i]->y = points->X[i-1]->y + rand()%BLK;
-		//}
+	}else{ // DISTRIBUCION UNIFORME
+		points->X = new float[points->n]; // +1?
+		points->Y = new float[points->n]; // +1?
+		//points->X[0] = (float)rand()/RAND_MAX*(maxi-mini)+mini; //parametro de entrada, definir
+		//points->Y[0] = (float)rand()/RAND_MAX*(maxi-mini)+mini;
+		float varx = points->maxx - points->minx;
+		float vary = points->maxy - points->miny;
+		for (i=0; i<points->n; i++){
+			points->X[i] = (float)rand()/RAND_MAX*varx+points->minx;
+			points->Y[i] = (float)rand()/RAND_MAX*vary+points->miny;
+		}
 	}
 
 }
@@ -247,8 +265,9 @@ void divideArrays(pointSet *points){
  */
 void runEPS(pointSet *points){
 	ulong i;
-	xup = xdown = xleft = xright = xri_up = xup_le = xle_do = xdo_ri = points->X[0];
-	yup = ydown = yleft = yright = yri_up = yup_le = yle_do = ydo_ri = points->Y[0];
+	xup = xdown = xleft = xright = points->X[0]; // xri_up = xup_le = xle_do = xdo_ri = points->X[0];
+	yup = ydown = yleft = yright = points->Y[0]; // yri_up = yup_le = yle_do = ydo_ri = points->Y[0];
+	bool flagRU, flagUL, flagLD, flagDR; // flags para saber si se encontró el pto extremo secundario
 	//points->left = points->right = points->up = points->down = points->X[0];
 	
 	for(i=1;i<points->n;i++){
@@ -282,21 +301,28 @@ void runEPS(pointSet *points){
 	// Calcular puntos extremos secundarios
 	
 	// Creo que es mucho más eficiente ordenar los puntos primero por coordenada x y así no evaluar todos los puntos?
+	
 	// Cuadrante izquierdo superior
 	float a, b, dist, denom;
 	a = (yup-yleft)/(xup-xleft);
 	b = -(yup-yleft)/(xup-xleft) + yleft;
 	denom = sqrt(a*a+1);
 	dist = 0;
-	for(i=1; i<points->n; i++){ // podemos mejorarlo haciendo que solo corra hasta cuando x es mayor que el centro.
+	for(i=0; i<points->n; i++){ // podemos mejorarlo haciendo que solo corra hasta cuando x es mayor que el centro.
 		if(points->X[i] < ((points->Y[i]-b)/a) && points->Y[i] > (a*points->X[i]+b)){
 			float disti = abs(a*points->X[i]-points->Y[i]+b)/denom;
 			if(disti > dist){
 				xup_le = points->X[i];
 				yup_le = points->Y[i];
 				dist = disti;
+				flagUL = true;
 			}
 		}
+	}
+	// Si no hay puntos sobre la recta lo igualamos al pto extremo izquierdo
+	if(!flagUL){
+		xup_le = xleft;
+		yup_le = yleft;
 	}
 	
 	// Cuadrante izquiero inferior
@@ -304,15 +330,21 @@ void runEPS(pointSet *points){
 	b = -(ydown-yleft)/(xdown-xleft) + yleft;
 	denom = sqrt(a*a+1);
 	dist = 0;
-	for(i=1; i<points->n; i++){ // podemos mejorarlo haciendo que solo corra hasta cuando x es mayor que el centro.
+	for(i=0; i<points->n; i++){ // podemos mejorarlo haciendo que solo corra hasta cuando x es mayor que el centro.
 		if(points->X[i] < ((points->Y[i]-b)/a) && points->Y[i] < (a*points->X[i]+b)){
 			float disti = abs(a*points->X[i]-points->Y[i]+b)/denom;
 			if(disti > dist){
 				xle_do = points->X[i];
 				yle_do = points->Y[i];
 				dist = disti;
+				flagLD = true;
 			}
 		}
+	}
+	// Si no hay puntos bajo la recta lo igualamos al pto extremo inferior
+	if(!flagLD){
+		xle_do = xdown;
+		yle_do = ydown;
 	}
 	
 	// Cuadrante inferior derecho
@@ -320,15 +352,21 @@ void runEPS(pointSet *points){
 	b = -(ydown-yright)/(xdown-xright) + yright;
 	denom = sqrt(a*a+1);
 	dist = 0;
-	for(i=1; i<points->n; i++){ // podemos mejorarlo haciendo que solo corra hasta cuando x es mayor que el centro.
+	for(i=0; i<points->n; i++){ // podemos mejorarlo haciendo que solo corra hasta cuando x es mayor que el centro.
 		if(points->X[i] > ((points->Y[i]-b)/a) && points->Y[i] < (a*points->X[i]+b)){
 			float disti = abs(a*points->X[i]-points->Y[i]+b)/denom;
 			if(disti > dist){
 				xdo_ri = points->X[i];
 				ydo_ri = points->Y[i];
 				dist = disti;
+				flagDR = true;
 			}
 		}
+	}
+	// Si no hay puntos bajo la recta lo igualamos al pto extremo derecho
+	if(!flagDR){
+		xdo_ri = xright;
+		ydo_ri = yright;
 	}
 	
 	// Cuadrante superior derecho
@@ -336,15 +374,21 @@ void runEPS(pointSet *points){
 	b = -(yup-yright)/(xup-xright) + yright;
 	denom = sqrt(a*a+1);
 	dist = 0;
-	for(i=1; i<points->n; i++){ // podemos mejorarlo haciendo que solo corra hasta cuando x es mayor que el centro.
+	for(i=0; i<points->n; i++){ // podemos mejorarlo haciendo que solo corra hasta cuando x es mayor que el centro.
 		if(points->X[i] > ((points->Y[i]-b)/a) && points->Y[i] > (a*points->X[i]+b)){
 			float disti = abs(a*points->X[i]-points->Y[i]+b)/denom;
 			if(disti > dist){
 				xri_up = points->X[i];
 				yri_up = points->Y[i];
 				dist = disti;
+				flagRU = true;
 			}
 		}
+	}
+	// Si no hay puntos sobre la recta lo igualamos al pto extremo superior
+	if(!flagRU){
+		xri_up= xup;
+		yri_up = yup;
 	}
 }
 
@@ -361,15 +405,12 @@ void runEPSP(pointSet *points){
 	#pragma omp parallel shared(xupi, xdowni, xlefti, xrighti, yupi, ydowni, ylefti, yrighti)
 	{
 		#pragma omp for private(i,j)
-		for(i=0; i < NTHREADS; i++){ //corregir para casos en que la división de la cantidad de puntos no es entera!
+		for(i=0; i < NTHREADS; i++){ //revisar para casos en que la división de la cantidad de puntos no es entera!
 			xrighti[i] = xdowni[i] = xlefti[i] = xupi[i] = points->X[nnew*i];
 			yrighti[i] = ydowni[i] = ylefti[i] = yupi[i] = points->Y[nnew*i];
 			for(j=nnew*i+1; j < (i+1)*nnew; j++){
-				//#pragma omp parallel sections
-				//cout << "Thread y j : " << omp_get_thread_num() << "," << j << endl;
 				{
 					// Find the rightest point for the i-segment
-					//#pragma omp section
 					if(points->X[j] > xrighti[i]){
 						//cout << "xrighti[ " << i << "] =" << xrighti[i]<< endl;
 						xrighti[i] = points->X[j];
@@ -378,19 +419,16 @@ void runEPSP(pointSet *points){
 						//cout << "Es el " << i << "mayor: " << points->X[j] << endl;
 					}
 					// Find the leftest point for the i-segment
-					//#pragma omp section
 					if(points->X[j] < xlefti[i]){
 						xlefti[i] = points->X[j];
 						ylefti[i] = points->Y[j];
 					}
 					// Find the upest point for the i-segment
-					//#pragma omp section
 					if(points->Y[j] > yupi[i]){	
 						yupi[i] = points->Y[j];
 						xupi[i] = points->X[j];
 					}
 					// Find downest point for the i-segment
-					//#pragma omp section
 					if(points->Y[j] < ydowni[i]){
 						ydowni[i] = points->Y[j];
 						xdowni[i] = points->X[j];
@@ -444,8 +482,9 @@ void runEPSP(pointSet *points){
 	// Creo que es mucho más eficiente ordenar los puntos primero por coordenada x y así no evaluar todos los puntos?
 	
 
-	xri_up = xup_le = xle_do = xdo_ri = points->X[0];
-	yri_up = yup_le = yle_do = ydo_ri = points->Y[0];
+	//xri_up = xup_le = xle_do = xdo_ri = points->X[0];
+	//yri_up = yup_le = yle_do = ydo_ri = points->Y[0];
+	bool flagRU, flagUL, flagLD, flagDR; // flags para saber si se encontró el pto extremo secundario
 	
 	float a, b, dist, denom;
 	
@@ -467,10 +506,11 @@ void runEPSP(pointSet *points){
 							xup_le = points->X[i];
 							yup_le = points->Y[i];
 							dist = disti;
+							flagUL = true;
 						}
 					}
 				}
-			}
+						}
 			#pragma omp section
 			{
 				// Cuadrante izquiero inferior
@@ -485,6 +525,7 @@ void runEPSP(pointSet *points){
 							xle_do = points->X[i];
 							yle_do = points->Y[i];
 							dist = disti;
+							flagLD = true;
 						}
 					}
 				}
@@ -503,6 +544,7 @@ void runEPSP(pointSet *points){
 							xdo_ri = points->X[i];
 							ydo_ri = points->Y[i];
 							dist = disti;
+							flagDR = true;
 						}
 					}
 				}
@@ -521,12 +563,34 @@ void runEPSP(pointSet *points){
 							xri_up = points->X[i];
 							yri_up = points->Y[i];
 							dist = disti;
+							flagRU = true;
 						}
 					}
 				}
 			}
+			
 		}
 		#pragma omp barrier
+		// Si no hay puntos sobre la recta lo igualamos al pto extremo izquierdo
+		if(!flagUL){
+			xup_le = xleft;
+			yup_le = yleft;
+		}
+		// Si no hay puntos sobre la recta lo igualamos al pto extremo inferior
+		if(!flagLD){
+			xle_do = xdown;
+			yle_do = ydown;
+		}
+		// Si no hay puntos sobre la recta lo igualamos al pto extremo derecho
+		if(!flagDR){
+			xdo_ri = xright;
+			ydo_ri = yright;
+		}
+		// Si no hay puntos sobre la recta lo igualamos al pto extremo superior
+		if(!flagRU){
+			xri_up = xup;
+			yri_up = yup;
+		}
 	}
 	//ulong i; //, j;
 	//uint nnew = (int)points->n/NTHREADS;
