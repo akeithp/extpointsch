@@ -23,7 +23,7 @@ using namespace std;
 //#define NTHREADS 4
 
 uint NTHREADS;	// number of threads
-ulong REPET = 100;
+ulong REPET = 1;
 ulong REPETTEST = 1;
 
 //ELIMINAR
