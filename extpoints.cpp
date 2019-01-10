@@ -62,7 +62,7 @@ void divideArrays(pointSet *points);
 void runEPS(pointSet *points);
 void runEPSP(pointSet *points);
 void filteredPercent(pointSet *points);
-//void testPoints(pointSet *points); //comprobar correctitud de los puntos encontrados (secuencial vs paralelo)
+void testPoints(pointSet *points); //comprobar correctitud de los puntos encontrados (secuencial vs paralelo)
 
 int main(int argc, char const *argv[]){
 	double t1,t2;
@@ -189,6 +189,9 @@ int main(int argc, char const *argv[]){
 				fprintf(fp, "%ld %ld %f\n", points->n, REPETTEST, (avgTime*1000000.0));
 			}
 			fclose(fp);
+			if(TEST){
+				testPoints(points);
+			}
 		}
 		
 	}
@@ -484,6 +487,7 @@ void runEPSP(pointSet *points){
 	
 	#pragma omp parallel
 	{
+		omp_set_dynamic(1);
 		#pragma omp sections private(i, a, b, denom, dist)
 		{
 			#pragma omp section
@@ -672,3 +676,33 @@ void runEPSP(pointSet *points){
 		fclose(fp);
 	}
 }
+
+/**
+ * Revisar la correctitud del algoritmo paralelo
+ */
+ void testPoints(pointSet *points){
+	 float xups, xdowns, xlefts, xrights, xri_ups, xup_les, xle_dos, xdo_ris;
+	 float yups, ydowns, ylefts, yrights, yri_ups, yup_les, yle_dos, ydo_ris;
+
+	 runEPS(points);
+	 xups=xup; yups=yup; xdowns=xdown; ydowns=ydown; xlefts=xleft; ylefts=yleft; xrights=xright; yrights=yright;
+	 xri_ups=xri_up; xup_les=xup_le; xle_dos=xle_do; xdo_ris=xdo_ri;
+	 yri_ups=yri_up; yup_les=yup_le; yle_dos=yle_do; ydo_ris=ydo_ri;
+	 runEPSP(points);
+	 if(xup != xups) cout << "ERROR, NORTH X coordinates aren't equal" << endl;
+	 if(yup != yups) cout << "ERROR, NORTH Y coordinates aren't equal" << endl;
+	 if(xdown != xdowns) cout << "ERROR, SOUTH X coordinates aren't equal" << endl;
+	 if(ydown != ydowns) cout << "ERROR, SOUTH Y coordinates aren't equal" << endl;
+	 if(xleft != xlefts) cout << "ERROR, WEST X coordinates aren't equal" << endl;
+	 if(yleft != ylefts) cout << "ERROR, WEST Y coordinates aren't equal" << endl;
+	 if(xright != xrights) cout << "ERROR, EAST X coordinates aren't equal" << endl;
+	 if(yright != yrights) cout << "ERROR, EAST Y coordinates aren't equal" << endl;
+	 if(xup_le != xup_les) cout << "ERROR, NORTHWEST X coordinates aren't equal" << endl;
+	 if(yup_le != yup_les) cout << "ERROR, NORTHWEST Y coordinates aren't equal" << endl;
+	 if(xdo_ri != xdo_ris) cout << "ERROR, SOUTHEAST X coordinates aren't equal" << endl;
+	 if(ydo_ri != ydo_ris) cout << "ERROR, SOUTHEAST Y coordinates aren't equal" << endl;
+	 if(xle_do != xle_dos) cout << "ERROR, SOUTHWEST X coordinates aren't equal" << endl;
+	 if(yle_do != yle_dos) cout << "ERROR, SOUTHWEST Y coordinates aren't equal" << endl;
+	 if(xri_up != xri_ups) cout << "ERROR, NORTHEAST X coordinates aren't equal" << endl;
+	 if(yri_up != yri_ups) cout << "ERROR, NORTHEAST Y coordinates aren't equal" << endl;
+ }
